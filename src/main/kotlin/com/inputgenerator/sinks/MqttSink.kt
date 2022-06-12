@@ -2,20 +2,26 @@ package com.inputgenerator.sinks
 
 import com.inputgenerator.entities.BaseEntity
 import com.inputgenerator.entities.DataEntity
+import com.inputgenerator.metrics.MetricsRepository
 import com.inputgenerator.transform.DataTransformer
 import org.eclipse.paho.mqttv5.client.IMqttClient
 import org.eclipse.paho.mqttv5.client.MqttClient
 import org.eclipse.paho.mqttv5.client.MqttConnectionOptions
 import org.eclipse.paho.mqttv5.common.MqttException
+import org.eclipse.paho.mqttv5.common.MqttPersistenceException
 
 
 class MqttSink(
+    sequenceName: String,
+    sinkName: String = "mqttSink",
+    sinkCount: String = "0",
     private val MQTT_PUBLISHER_ID: String,
     private val MQTT_SERVER_ADDRES: String = "tcp://127.0.0.1:1883",
     private val MQTT_SERVER_PASSWORD: String? = null,
     private val MQTT_SERVER_USERNAME: String? = null,
-    private val MQTT_SERVER_TOPIC: String
-) : DataSink<String>
+    private val MQTT_SERVER_TOPIC: String,
+    private val MQTT_MESSAGE_QOS: Int = 0
+) : BaseDataSink<String>(sequenceName, "${sinkName}-${sinkCount}", MetricsRepository)
 {
     private var client: IMqttClient? = this.getclient()
 
@@ -26,8 +32,19 @@ class MqttSink(
                     .getValue()
                     .encodeToByteArray()
             )
-        mqttMessage.qos = 0
-        client?.publish(MQTT_SERVER_TOPIC, mqttMessage)
+        mqttMessage.qos = MQTT_MESSAGE_QOS
+        try {
+            client?.publish(MQTT_SERVER_TOPIC, mqttMessage)
+        } catch (e: MqttException){
+            this.failsMetric?.incValue()
+            throw  e
+        } catch (e: MqttPersistenceException){
+            this.failsMetric?.incValue()
+            throw  e
+        }
+
+
+        this.writeMetric?.incValue()
 
         //System.out.println("Mqtt sent: " + data.getValue())
 
@@ -65,7 +82,7 @@ class MqttMessage(value: String): BaseEntity<String>(value) {
 
 class StringToMqttMessageTransformer: DataTransformer<String, String> {
     override fun apply(a: String): MqttMessage {
-        return a?.let { MqttMessage(it) }
+        return a.let { MqttMessage(it) }
     }
 
     override fun getDescription(): String? {

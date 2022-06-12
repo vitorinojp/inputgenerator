@@ -2,25 +2,28 @@ package com.inputgenerator
 
 import com.inputgenerator.sinks.MqttSink
 import com.inputgenerator.sinks.StringToMqttMessageTransformer
-import com.inputgenerator.sources.CsvSource
 import com.inputgenerator.transform.DataTransformer
-import com.inputgenerator.common.*
+import com.inputgenerator.configurations.*
+import com.inputgenerator.metrics.MetricsRepository
 import com.inputgenerator.sequence.Sequence
+import com.inputgenerator.sources.DataSource
+import com.inputgenerator.sources.TTNMeasureSource
 import kotlinx.coroutines.*
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import java.util.*
 import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.milliseconds
 
 @SpringBootApplication
 class Ferrovia40InputGeneratorApplication(val configuration: Configuration): ApplicationRunner {
+    private var metricsRepository: MetricsRepository = MetricsRepository
     @OptIn(DelicateCoroutinesApi::class)
     override fun run(args: ApplicationArguments?) {
         // Componentes
-        val dataSource: CsvSource
-        val dataSink: MqttSink
+        val dataSource: DataSource<String>
         val dataTransformer: DataTransformer<String, String>
 
         parseOptions(configuration, args)
@@ -32,21 +35,25 @@ class Ferrovia40InputGeneratorApplication(val configuration: Configuration): App
         configuration.password?.let { sinkMap.put(HOST_PASSWORD, it) }
         configuration.topic.let { sinkMap.put(HOST_TOPIC, it) }
 
-        dataSource = CsvSource(configuration.filePath, true, configuration.restart)
-        dataSink = MqttSink(
-            "InputGenerator",
-            "tcp://" + configuration.host + ":" + configuration.port,
-            configuration.password,
-            configuration.username,
-            configuration.topic
+        dataSource = TTNMeasureSource("main")
+        val dataSink: MqttSink = MqttSink(
+            "main",
+            MQTT_PUBLISHER_ID = "InputGenerator",
+            MQTT_SERVER_ADDRES = "tcp://" + configuration.host + ":" + configuration.port,
+            MQTT_SERVER_PASSWORD = configuration.password,
+            MQTT_SERVER_USERNAME = configuration.username,
+            MQTT_SERVER_TOPIC = configuration.topic,
+            MQTT_MESSAGE_QOS = configuration.qos
         )
         dataTransformer = StringToMqttMessageTransformer()
 
         val sequence: Sequence<String, String> =
             Sequence(
+                "main",
                 dataSource,
                 dataSink,
-                dataTransformer
+                dataTransformer,
+                metricsRepository
             )
         sequence.baseDelay = configuration.baseDelay.milliseconds
 
@@ -62,6 +69,7 @@ class Ferrovia40InputGeneratorApplication(val configuration: Configuration): App
         )
 
         val job: Job = GlobalScope.launch(Dispatchers.Default) {
+            sequence.init()
             sequence.run(
                 configuration.burst,
                 configuration.delayDuration,
@@ -73,7 +81,9 @@ class Ferrovia40InputGeneratorApplication(val configuration: Configuration): App
                 "q", "Q", "quit" -> {
                     println("Closing sequence...")
                     job.cancel()
-                    println("Closed. Quitting...")
+                    println("Closed. Printing metrics")
+                    metricsRepository.print()
+                    println("Quitting...")
                     exitProcess(0)
                 }
                 else -> println("Input not recognized. Type 'q' to quit")
@@ -111,6 +121,7 @@ fun parseOptions(configuration: Configuration, args: ApplicationArguments?){
             "basedelay" -> configuration.baseDelay = args.getOptionValues("basedelay")[0].toInt()
             "wait" -> configuration.wait = args.getOptionValues("wait")[0].toBoolean()
             "restart" -> configuration.restart = args.getOptionValues("restart")[0].toBoolean()
+            "qos" -> configuration.qos = args.getOptionValues("qos")[0].toInt()
         }
     }
 }

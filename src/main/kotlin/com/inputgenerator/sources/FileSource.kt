@@ -1,24 +1,25 @@
 package com.inputgenerator.sources
 
-import com.inputgenerator.common.SOURCE_FILE_NAME
-import com.inputgenerator.common.SOURCE_RESTART
-import java.io.BufferedInputStream
+import com.inputgenerator.metrics.MetricsRepository
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStreamReader
 
-class CsvSource(
+class FileSource(
+    sequenceName: String,
+    sourceName: String = "fileSource",
+    sourceCount: String = "0",
     val fileName: String?,
-    val readHeader: Boolean = false,
+    val readFirstLine: Boolean = false,
     val restartFromBeginning: Boolean = false
-): DataSource<String> {
+): BaseDataSource<String>(sequenceName, "${sourceName}-${sourceCount}", MetricsRepository) {
     // File readers
     val file: File = fileName?.let { it -> File(it) } ?: throw Error("No file name in config object")
     var inputStreamReader: BufferedReader = getBufferedReaderFromFile(file)
 
     // Conditional behaviour
-    var headers: String? = getHeader(readHeader, inputStreamReader)
+    var headers: String? = getHeader(readFirstLine, inputStreamReader)
 
     fun getLine(): String?{
         var line: String? = inputStreamReader.readLine()
@@ -33,7 +34,7 @@ class CsvSource(
                 println("Opening again")
 
                 inputStreamReader = getBufferedReaderFromFile(file)
-                headers = getHeader(readHeader, inputStreamReader)
+                headers = getHeader(readFirstLine, inputStreamReader)
 
                 return inputStreamReader.readLine()
             }
@@ -54,7 +55,7 @@ class CsvSource(
 
     override fun getDescription(): String {
         return "\n      class: ${this.javaClass.name} \n      file: ${this.fileName} \n" +
-                "      readHeader: ${this.readHeader} \n" +
+                "      readFirstLine: ${this.readFirstLine} \n" +
                 "      restartFromBeginning: ${this.restartFromBeginning}"
     }
 

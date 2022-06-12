@@ -1,11 +1,7 @@
-package com.inputgenerator.common
+package com.inputgenerator.configurations
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.nanoseconds
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 @org.springframework.context.annotation.Configuration
 class Configuration() {
@@ -22,10 +18,10 @@ class Configuration() {
     var burst: Int = 1
     var rate: Int? = null
     var wait: Boolean = true
-    @OptIn(ExperimentalTime::class)
     var delayDuration: Duration? = null
         get() = rate?.let { rate -> 60000.milliseconds / rate }
     var restart: Boolean = false
+    var qos: Int = 0
 }
 
 // Sources
