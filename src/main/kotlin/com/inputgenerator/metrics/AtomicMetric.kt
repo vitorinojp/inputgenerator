@@ -1,11 +1,14 @@
 package com.inputgenerator.metrics
 
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
 
 class AtomicLongMetric(
     value: Long = 0,
     private var value_: AtomicLong = AtomicLong(value)
-): IMetricCounter {
+) : IMetricCounter {
 
     override fun getValue(): Long {
         return value_.toLong()
@@ -24,7 +27,7 @@ class AtomicLongMetric(
     }
 
     override fun decValue(): Long {
-        return  value_.decrementAndGet()
+        return value_.decrementAndGet()
     }
 
     override fun toString(): String {
