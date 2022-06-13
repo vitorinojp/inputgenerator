@@ -7,7 +7,7 @@ class TTNMeasureSource(
     sequenceName: String,
     sourceName: String = "ttnMeasureSource",
     sourceCount: String = "0",
-): BaseDataSource<String>(sequenceName, "${sourceName}-${sourceCount}", MetricsRepository) {
+) : BaseDataSource<String>(sequenceName, "${sourceName}-${sourceCount}", MetricsRepository) {
     override fun get(): String? {
         this.readMetric?.incValue()
         return "{\"end_device_ids\":{\"device_id\":\"eui-3c60050d3b60ffff\",\"application_ids\":{\"application_id\":\"isel-meic-tfm71-tttnmapper-test\"},\"dev_eui\":\"3C60050D3B60FFFF\",\"join_eui\":\"0000000000000000\"},\"correlation_ids\":[\"as:up:01G4WRWW6RK10QMCNRP7RQ46MW\",\"rpc:/ttn.lorawan.v3.AppAs/SimulateUplink:6ebeee66-c4eb-46cb-afd2-ab01e84123e5\"],\"received_at\":" +
