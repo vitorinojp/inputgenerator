@@ -1,7 +1,7 @@
 package com.inputgenerator.configurations
 
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @org.springframework.context.annotation.Configuration
 class Configuration() {
@@ -18,8 +18,8 @@ class Configuration() {
     var burst: Int = 1
     var rate: Int? = null
     var wait: Boolean = true
-    var delayDuration: Duration? = null
-        get() = rate?.let { rate -> 60000.milliseconds / rate }
+    var delayDuration: Duration = 1.seconds
+        get() = rate?.let { rate -> 1.seconds / rate } ?: field
     var restart: Boolean = false
     var qos: Int = 0
 }
