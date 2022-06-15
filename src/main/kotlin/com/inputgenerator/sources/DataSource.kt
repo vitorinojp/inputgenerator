@@ -4,7 +4,7 @@ import com.inputgenerator.metrics.AtomicLongMetric
 import com.inputgenerator.metrics.IMetricCounter
 import com.inputgenerator.metrics.MetricsRepository
 
-interface DataSource <V> {
+interface DataSource<V> {
     fun get(): V?
     fun available(): Boolean
     fun getDescription(): String
@@ -16,16 +16,16 @@ abstract class BaseDataSource<V>(
     sourceName: String,
     var metricsRepository: MetricsRepository,
     var sourceId: String = "${sequenceName}.${sourceName}"
-): DataSource<V> {
+) : DataSource<V> {
     protected var readMetric: IMetricCounter? = null
     protected var failsMetric: IMetricCounter? = null
 
     override fun init(configs: Map<String, String>) {
-        metricsRepository.registerMetricIfAbsent("sequence.source.${sourceId}.reads", AtomicLongMetric())
-        metricsRepository.registerMetricIfAbsent("sequence.source.${sourceId}.fails", AtomicLongMetric())
+        metricsRepository.registerMetricIfAbsent("sequence.${sourceId}.reads", AtomicLongMetric())
+        metricsRepository.registerMetricIfAbsent("sequence.${sourceId}.fails", AtomicLongMetric())
 
-        this.readMetric = metricsRepository.getCounter("sequence.source.${sourceId}.reads")
-        this.failsMetric = metricsRepository.getCounter("sequence.source.${sourceId}.fails")
+        this.readMetric = metricsRepository.getCounter("sequence.${sourceId}.reads")
+        this.failsMetric = metricsRepository.getCounter("sequence.${sourceId}.fails")
     }
 }
 

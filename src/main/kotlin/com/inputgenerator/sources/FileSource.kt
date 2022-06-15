@@ -11,34 +11,33 @@ class FileSource(
     sourceName: String = "fileSource",
     sourceCount: String = "0",
     val fileName: String?,
-    val readFirstLine: Boolean = false,
+    val skipFirstLine: Boolean = false,
     val restartFromBeginning: Boolean = false
-): BaseDataSource<String>(sequenceName, "${sourceName}-${sourceCount}", MetricsRepository) {
+) : BaseDataSource<String>(sequenceName, "${sourceName}-${sourceCount}", MetricsRepository) {
     // File readers
     val file: File = fileName?.let { it -> File(it) } ?: throw Error("No file name in config object")
     var inputStreamReader: BufferedReader = getBufferedReaderFromFile(file)
 
     // Conditional behaviour
-    var headers: String? = getHeader(readFirstLine, inputStreamReader)
+    var headers: String? = getFirstLine(skipFirstLine, inputStreamReader)
 
-    fun getLine(): String?{
+    fun getLine(): String? {
         var line: String? = inputStreamReader.readLine()
-        if(available() && line != null ){
+        if (available() && line != null) {
             //println(line)
+            this.readMetric?.incValue()
             return line
-        }
-        else {
+        } else {
             inputStreamReader.close()
             print("Source ended. ")
-            if(restartFromBeginning){
+            if (restartFromBeginning) {
                 println("Opening again")
 
                 inputStreamReader = getBufferedReaderFromFile(file)
-                headers = getHeader(readFirstLine, inputStreamReader)
+                headers = getFirstLine(skipFirstLine, inputStreamReader)
 
                 return inputStreamReader.readLine()
-            }
-            else {
+            } else {
                 println("Nothing to do")
                 return null
             }
@@ -55,17 +54,17 @@ class FileSource(
 
     override fun getDescription(): String {
         return "\n      class: ${this.javaClass.name} \n      file: ${this.fileName} \n" +
-                "      readFirstLine: ${this.readFirstLine} \n" +
+                "      readFirstLine: ${this.skipFirstLine} \n" +
                 "      restartFromBeginning: ${this.restartFromBeginning}"
     }
 
     companion object {
-        private fun getBufferedReaderFromFile(file: File): BufferedReader{
+        private fun getBufferedReaderFromFile(file: File): BufferedReader {
             return BufferedReader(InputStreamReader(FileInputStream(file)))
         }
 
-        private fun getHeader(readHeader: Boolean, bufferedReader: BufferedReader): String?{
-            return if (readHeader) bufferedReader.readLine() else null
+        private fun getFirstLine(skipFirstLine: Boolean, bufferedReader: BufferedReader): String? {
+            return if (skipFirstLine) bufferedReader.readLine() else null
         }
     }
 }

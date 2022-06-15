@@ -18,8 +18,8 @@ class Configuration() {
     var burst: Int = 1
     var rate: Int? = null
     var wait: Boolean = true
-    var delayDuration: Duration? = null
-        get() = rate?.let { rate -> 1.seconds / rate }
+    var delayDuration: Duration = 1.seconds
+        get() = rate?.let { rate -> 1.seconds / rate } ?: field
     var restart: Boolean = false
     var qos: Int = 0
 }

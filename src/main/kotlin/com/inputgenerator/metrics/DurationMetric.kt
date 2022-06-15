@@ -1,12 +1,12 @@
 package com.inputgenerator.metrics
 
-import kotlin.time.ExperimentalTime
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 @OptIn(ExperimentalTime::class)
-class DurationMetric: IMetricTime{
+class DurationMetric : IMetricTime {
     private val timeSource: TimeSource = TimeSource.Monotonic
     private var begin: TimeMark? = null
     private var end: TimeMark? = null
@@ -18,7 +18,7 @@ class DurationMetric: IMetricTime{
     }
 
     override fun end(): TimeMark? {
-        if(begin == null)
+        if (begin == null)
             begin
         diff = begin?.elapsedNow()
         diff?.let { diff -> end = begin!! + diff }
@@ -36,6 +36,6 @@ class DurationMetric: IMetricTime{
     }
 
     override fun toString(): String {
-        return getDiff() ?. toString() ?: "null"
+        return getDiff()?.toString() ?: "null"
     }
 }

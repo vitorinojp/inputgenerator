@@ -21,8 +21,7 @@ class MqttSink(
     private val MQTT_SERVER_USERNAME: String? = null,
     private val MQTT_SERVER_TOPIC: String,
     private val MQTT_MESSAGE_QOS: Int = 0
-) : BaseDataSink<String>(sequenceName, "${sinkName}-${sinkCount}", MetricsRepository)
-{
+) : BaseDataSink<String>(sequenceName, "${sinkName}-${sinkCount}", MetricsRepository) {
     private var client: IMqttClient? = this.getclient()
 
     override fun write(data: DataEntity<String>): DataEntity<String> {
@@ -35,10 +34,10 @@ class MqttSink(
         mqttMessage.qos = MQTT_MESSAGE_QOS
         try {
             client?.publish(MQTT_SERVER_TOPIC, mqttMessage)
-        } catch (e: MqttException){
+        } catch (e: MqttException) {
             this.failsMetric?.incValue()
             throw  e
-        } catch (e: MqttPersistenceException){
+        } catch (e: MqttPersistenceException) {
             this.failsMetric?.incValue()
             throw  e
         }
@@ -51,18 +50,18 @@ class MqttSink(
         return data
     }
 
-    private fun getclient(): IMqttClient{
+    private fun getclient(): IMqttClient {
         val iMqttClient: IMqttClient = MqttClient(MQTT_SERVER_ADDRES, MQTT_PUBLISHER_ID)
 
         val options = MqttConnectionOptions()
         options.isAutomaticReconnect = true
         options.connectionTimeout = 10
-        MQTT_SERVER_PASSWORD?.let { options.password = it.encodeToByteArray()}
-        MQTT_SERVER_USERNAME?.let { options.userName = it}
+        MQTT_SERVER_PASSWORD?.let { options.password = it.encodeToByteArray() }
+        MQTT_SERVER_USERNAME?.let { options.userName = it }
 
         try {
             iMqttClient.connect(options)
-        } catch (e: MqttException){
+        } catch (e: MqttException) {
             System.out.println("Mqtt could not connect do to: ")
             e.stackTrace
             throw Error("Failed to start sink")
@@ -76,11 +75,13 @@ class MqttSink(
     }
 }
 
-class MqttMessage(value: String): BaseEntity<String>(value) {
-    override fun toString(): String { return this.getValue()}
+class MqttMessage(value: String) : BaseEntity<String>(value) {
+    override fun toString(): String {
+        return this.getValue()
+    }
 }
 
-class StringToMqttMessageTransformer: DataTransformer<String, String> {
+class StringToMqttMessageTransformer : DataTransformer<String, String> {
     override fun apply(a: String): MqttMessage {
         return a.let { MqttMessage(it) }
     }
