@@ -9,6 +9,7 @@ interface DataSink<V> {
     fun write(data: DataEntity<V>): DataEntity<V>
     fun getDescription(): String?
     fun init(configs: Map<String, String> = HashMap())
+    fun close(wait: Long?)
 }
 
 abstract class BaseDataSink<V>(
@@ -19,11 +20,14 @@ abstract class BaseDataSink<V>(
 ) : DataSink<V> {
     protected var writeMetric: IMetricCounter? = null
     protected var failsMetric: IMetricCounter? = null
+    protected var triesMetric: IMetricCounter? = null
 
     override fun init(configs: Map<String, String>) {
+        metricsRepository.registerMetricIfAbsent("sequence.${sinkId}.tries", AtomicLongMetric())
         metricsRepository.registerMetricIfAbsent("sequence.${sinkId}.writes", AtomicLongMetric())
         metricsRepository.registerMetricIfAbsent("sequence.${sinkId}.fails", AtomicLongMetric())
 
+        this.triesMetric = metricsRepository.getCounter("sequence.${sinkId}.tries")
         this.writeMetric = metricsRepository.getCounter("sequence.${sinkId}.writes")
         this.failsMetric = metricsRepository.getCounter("sequence.${sinkId}.fails")
     }
@@ -40,4 +44,9 @@ class DummySink<V>(
     override fun getDescription(): String? {
         return this.javaClass.name
     }
+
+    override fun close(wait: Long?) {
+
+    }
+
 }

@@ -3,6 +3,7 @@ package com.inputgenerator.sinks
 import com.inputgenerator.entities.BaseEntity
 import com.inputgenerator.entities.DataEntity
 import com.inputgenerator.metrics.MetricsRepository
+import com.inputgenerator.transform.BaseDataTransformer
 import com.inputgenerator.transform.DataTransformer
 import org.eclipse.paho.mqttv5.client.IMqttClient
 import org.eclipse.paho.mqttv5.client.MqttClient
@@ -25,6 +26,7 @@ class MqttSink(
     private var client: IMqttClient? = this.getclient()
 
     override fun write(data: DataEntity<String>): DataEntity<String> {
+        this.triesMetric?.incValue()
         val mqttMessage: org.eclipse.paho.mqttv5.common.MqttMessage =
             org.eclipse.paho.mqttv5.common.MqttMessage(
                 data
@@ -70,6 +72,21 @@ class MqttSink(
         return iMqttClient
     }
 
+    override fun close(wait: Long?){
+        try {
+            if (wait == null){
+                this.client?.disconnect()
+            }
+            else {
+                this.client?.disconnect(wait)
+            }
+        }catch (e: java.lang.Exception){
+            println(e.message)
+        }finally {
+            this.client?.close()
+        }
+    }
+
     override fun getDescription(): String? {
         return "\n      class: ${this.javaClass.name} \n      publisherId: ${this.MQTT_PUBLISHER_ID} \n      host: ${this.MQTT_SERVER_ADDRES} \n      topic: ${this.MQTT_SERVER_TOPIC}"
     }
@@ -81,7 +98,11 @@ class MqttMessage(value: String) : BaseEntity<String>(value) {
     }
 }
 
-class StringToMqttMessageTransformer : DataTransformer<String, String> {
+class StringToMqttMessageTransformer(
+    sequenceName: String,
+    transformName: String = "stringToMqttMessageTransformer",
+    metricsRepository: MetricsRepository = MetricsRepository
+) : BaseDataTransformer<String, String>(sequenceName ,transformName, metricsRepository) {
     override fun apply(a: String): MqttMessage {
         return a.let { MqttMessage(it) }
     }

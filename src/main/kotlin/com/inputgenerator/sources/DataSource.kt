@@ -9,6 +9,7 @@ interface DataSource<V> {
     fun available(): Boolean
     fun getDescription(): String
     fun init(configs: Map<String, String> = HashMap())
+    fun close(wait: Long?)
 }
 
 abstract class BaseDataSource<V>(
@@ -26,6 +27,10 @@ abstract class BaseDataSource<V>(
 
         this.readMetric = metricsRepository.getCounter("sequence.${sourceId}.reads")
         this.failsMetric = metricsRepository.getCounter("sequence.${sourceId}.fails")
+    }
+
+    override fun close(wait: Long?) {
+
     }
 }
 
