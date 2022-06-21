@@ -22,6 +22,7 @@ class Configuration() {
         get() = rate?.let { rate -> 1.seconds / rate } ?: field
     var restart: Boolean = false
     var qos: Int = 0
+    var maxSize: Long? = null
 }
 
 // Sources

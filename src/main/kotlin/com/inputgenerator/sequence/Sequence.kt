@@ -19,25 +19,41 @@ import kotlin.time.TimeSource
  * Defines a sequence of steps to execute.
  */
 interface ISequence<entry, out exit> {
+    var count: Long
+
     /**
      * Initialization for configurations, components and metrics
+     * @param configs an optional list of extra configurations, that may be ignored
      */
     fun init(configs: Map<String, String> = HashMap())
 
     /**
      * Helper for execution with delay. Defines a suspend function.
-     * @param count the number of read to include in a step (burst size)
-     * @param duration the delay between steps
+     * @param burstSize the number of read to include in a step (burst size). Defaults to 1
+     * @param delay the delay between steps. Defaults to 1.seconds
+     * @param wait whether to apply the delay or not.  Defaults to true
+     * @param max value for the sequence, if null interpreted as infinite. Defaults to null
      * @return [Job] (coroutine) that executes the steps
      */
-    suspend fun run(count: Int = 1, duration: Duration = 1.seconds, wait: Boolean = true): Job
+    suspend fun run(burstSize: Int = 1, delay: Duration = 1.seconds, wait: Boolean = true, max: Long? = null): Job
 
     /**
      * The suspend function that executes a single step. Reading, transforming and writing a given entry
-     * @param count the number of read to include in a step (burst size)
+     * @param burstSize the number of read to include in a step (burst size). Defaults to 1
      * @return the value that was last written
      */
-    suspend fun step(count: Int = 1): exit?
+    suspend fun step(burstSize: Int = 1, max: Long? = null): exit?
+
+    /**
+     * Auxiliary function: checks if count is in range 1..max, for max: Long?
+     * @param count the given count to check
+     * @param max value for the sequence, if null interpreted as infinite
+     */
+    fun checkMax(count: Long, max: Long?): Boolean {
+        return if (max == null) {
+            true
+        } else count in 1..max
+    }
 }
 
 
@@ -47,7 +63,6 @@ interface ISequence<entry, out exit> {
  * @property sink the [DataSink] that provides a write target for each step
  * @property transformer the [DataTransformer] that connects the source and sink
  */
-@OptIn(ExperimentalTime::class)
 class Sequence<entry, out exit>(
     private val name: String,
     private val source: DataSource<entry>,
@@ -57,6 +72,7 @@ class Sequence<entry, out exit>(
 ) : ISequence<entry, exit> {
     // Configuration values
     var baseDelay: Duration = 0.milliseconds
+    override var count: Long = 1
 
     override fun init(configs: Map<String, String>) {
         metricsRepository.registerMetricIfAbsent("sequence.${name}.time.duration", DurationMetric())
@@ -64,7 +80,8 @@ class Sequence<entry, out exit>(
         this.sink.init()
     }
 
-    override suspend fun run(count: Int, duration: Duration, wait: Boolean): Job = coroutineScope {
+    @OptIn(ExperimentalTime::class)
+    override suspend fun run(burstSize: Int, delay: Duration, wait: Boolean, max: Long?): Job = coroutineScope {
         // ** Timing //
         var durationMetric = metricsRepository.getTime("sequence.${name}.time.duration")
         // * Anchoring vars for wait timing * //
@@ -77,35 +94,35 @@ class Sequence<entry, out exit>(
             var mark: TimeMark = timeSource.markNow()
             durationMetric?.begin()
 
-            while (isActive) {
+            while (isActive && checkMax(count, max)) {
                 // Wait and mark
                 if (wait && !first) {
-                    delay(duration - (elapsed + baseDelay))
+                    elapsed = mark.elapsedNow()
+                    //println("delay: " + delay + ", elapsed: " + elapsed)
+                    //println("result: " + (delay - elapsed ))
+                    delay(delay - elapsed)
                     mark = timeSource.markNow()
                 }
 
-                if (step(count) == null) return@launch // Advance sequence, or end
-                yield() // Yield as needed
-
-                // Calculate delay
-                if (wait && !first) {
-                    elapsed = mark.elapsedNow()
-                    //println(elapsed)
-                }
+                if ( step(burstSize, max) == null) return@launch // Advance sequence, or end
 
                 if (first) {
                     first = false
                 }
             }
 
+            close(null)
+
             durationMetric?.end()
+
+            return@launch
         }
     }
 
-    override suspend fun step(count: Int): exit? {
+    override suspend fun step(burstSize: Int, max: Long?): exit? {
         var last: exit? = null
-        for (i in 1..count) {
-            if (source.available()) {
+        for (i in 1..burstSize) {
+            if (source.available() && checkMax(count++, max)) {
                 val data: entry? = source.get()
                 if (data != null) {
                     val result: DataEntity<exit>? = transformer.apply(data)
@@ -118,8 +135,13 @@ class Sequence<entry, out exit>(
                 }
             }
         }
-        yield()
         return last
+    }
+
+    private fun close(wait: Long?){
+        this.source.close(wait)
+        this.transformer.close(wait)
+        this.sink.close(wait)
     }
 
 }
