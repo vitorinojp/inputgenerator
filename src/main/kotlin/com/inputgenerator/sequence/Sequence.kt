@@ -115,6 +115,8 @@ class Sequence<entry, out exit>(
 
             durationMetric?.end()
 
+            println(durationMetric?.getDiff())
+
             return@launch
         }
     }

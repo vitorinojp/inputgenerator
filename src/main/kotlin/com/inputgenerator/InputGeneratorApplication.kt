@@ -41,7 +41,8 @@ class InputGeneratorApplication(val configuration: Configuration) : ApplicationR
                 "main",
                 fileName = configuration.filePath,
                 skipFirstLine = true,
-                restartFromBeginning = configuration.restart
+                restartFromBeginning = configuration.restart,
+                injectTime = configuration.injectTime,
             )
             val dataSink: MqttSink = MqttSink(
                 "main",
@@ -154,6 +155,7 @@ fun parseOptions(configuration: Configuration, args: ApplicationArguments?) {
             "restart" -> configuration.restart = args.getOptionValues("restart")[0].toBoolean()
             "qos" -> configuration.qos = args.getOptionValues("qos")[0].toInt()
             "maxSize" -> configuration.maxSize = args.getOptionValues("maxSize")[0].toLong()
+            "injectTime" -> configuration.injectTime = args.getOptionValues("injectTime")[0].toBoolean()
         }
     }
 }

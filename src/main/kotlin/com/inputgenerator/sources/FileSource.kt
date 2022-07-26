@@ -5,6 +5,8 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStreamReader
+import java.time.Instant
+import java.util.*
 
 class FileSource(
     sequenceName: String,
@@ -12,7 +14,8 @@ class FileSource(
     sourceCount: String = "0",
     val fileName: String?,
     val skipFirstLine: Boolean = false,
-    val restartFromBeginning: Boolean = false
+    val restartFromBeginning: Boolean = false,
+    val injectTime: Boolean = false,
 ) : BaseDataSource<String>(sequenceName, "${sourceName}-${sourceCount}", MetricsRepository) {
     // File readers
     val file: File = fileName?.let { it -> File(it) } ?: throw Error("No file name in config object")
@@ -45,7 +48,11 @@ class FileSource(
     }
 
     override fun get(): String? {
-        return this.getLine()
+        var line: String? = this.getLine()
+        if (injectTime){
+            line = line?.let { this.replaceWithTimestamp(it) }
+        }
+        return line
     }
 
     override fun available(): Boolean {
@@ -66,5 +73,11 @@ class FileSource(
         private fun getFirstLine(skipFirstLine: Boolean, bufferedReader: BufferedReader): String? {
             return if (skipFirstLine) bufferedReader.readLine() else null
         }
+    }
+
+    private fun replaceWithTimestamp(string: String): String {
+        // ISO 8601 timestamp
+        val timestamp = Instant.now().toString()
+        return string.replace("{}", timestamp.toString())
     }
 }

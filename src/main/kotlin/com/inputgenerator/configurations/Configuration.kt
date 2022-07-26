@@ -23,6 +23,7 @@ class Configuration() {
     var restart: Boolean = false
     var qos: Int = 0
     var maxSize: Long? = null
+    var injectTime: Boolean = false
 }
 
 // Sources
