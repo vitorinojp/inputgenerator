@@ -21,11 +21,16 @@ class FileSource(
     // Conditional behaviour
     var headers: String? = getFirstLine(skipFirstLine, inputStreamReader)
 
+    var seqId: Long = 0
+
     fun getLine(): String? {
         var line: String? = inputStreamReader.readLine()
         if (available() && line != null) {
             //println(line)
             this.readMetric?.incValue()
+            val size = line.length.toLong()
+            this.bytesMetric?.addToValue(size)
+            this.bytesMinMaxMetric?.insert(size)
             return line
         } else {
             inputStreamReader.close()

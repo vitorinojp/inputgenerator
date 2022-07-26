@@ -9,6 +9,7 @@ interface IMetricsRepository {
     fun registerMetric(name: String, startingValue: IMetric)
     fun getCounter(name: String): IMetricCounter?
     fun getRange(name: String): IMetricRange?
+    fun getMinMax(name: String): AtomicLongMinMaxMetric?
     fun getTime(name: String): IMetricTime?
     fun print(filter: Regex = Regex(".*"))
 }
@@ -40,6 +41,15 @@ object MetricsRepository : IMetricsRepository {
     override fun getRange(name: String): IMetricRange? {
         val range = map[name]
         return if (range is IMetricRange) {
+            range
+        } else {
+            null
+        }
+    }
+
+    override fun getMinMax(name: String): AtomicLongMinMaxMetric? {
+        val range = map[name]
+        return if (range is AtomicLongMinMaxMetric) {
             range
         } else {
             null
