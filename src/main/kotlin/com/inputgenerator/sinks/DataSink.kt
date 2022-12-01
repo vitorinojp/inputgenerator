@@ -48,5 +48,32 @@ class DummySink<V>(
     override fun close(wait: Long?) {
 
     }
+}
+
+abstract class TopicBasedSink<V>(
+    sequenceName: String,
+    sinkName: String,
+    metricsRepository: MetricsRepository,
+    open var map: String? = null
+) : BaseDataSink<V>(sequenceName, sinkName, metricsRepository) {
+    override fun getDescription(): String? {
+        return this.javaClass.name
+    }
+
+    fun mapTopic(topic: String, map: String?): String{
+        var splits = map?.split(",")
+
+        // Switch based on type of mapping in start of split
+        return when(splits?.get(0)){
+            "int" -> {
+                // random int between split[1] and split[2]
+                val id = (Math.random() * (splits[2].toInt() - splits[1].toInt())).toInt() + splits[1].toInt()
+                topic.replace("{}", id.toString())
+            }
+            else -> {
+                topic
+            }
+        }
+    }
 
 }

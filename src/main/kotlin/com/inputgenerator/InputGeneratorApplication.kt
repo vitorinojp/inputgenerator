@@ -51,7 +51,8 @@ class InputGeneratorApplication(val configuration: Configuration) : ApplicationR
                 MQTT_SERVER_PASSWORD = configuration.password,
                 MQTT_SERVER_USERNAME = configuration.username,
                 MQTT_SERVER_TOPIC = configuration.topic,
-                MQTT_MESSAGE_QOS = configuration.qos
+                MQTT_MESSAGE_QOS = configuration.qos,
+                map = configuration.injectIntoTopic
             )
             dataTransformer = StringToMqttMessageTransformer("main")
 
@@ -156,6 +157,7 @@ fun parseOptions(configuration: Configuration, args: ApplicationArguments?) {
             "qos" -> configuration.qos = args.getOptionValues("qos")[0].toInt()
             "maxSize" -> configuration.maxSize = args.getOptionValues("maxSize")[0].toLong()
             "injectTime" -> configuration.injectTime = args.getOptionValues("injectTime")[0].toBoolean()
+            "injectIntoTopic" -> configuration.injectIntoTopic = args.getOptionValues("injectIntoTopic")[0]
         }
     }
 }

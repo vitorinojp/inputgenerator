@@ -5,6 +5,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @org.springframework.context.annotation.Configuration
 class Configuration() {
+    var injectIntoTopic: String? = null
     var baseDelay: Int = 0
     var filePath: String? = null
     var dataSink: String? = null

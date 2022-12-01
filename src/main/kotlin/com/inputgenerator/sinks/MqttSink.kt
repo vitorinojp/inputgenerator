@@ -21,8 +21,9 @@ class MqttSink(
     private val MQTT_SERVER_PASSWORD: String? = null,
     private val MQTT_SERVER_USERNAME: String? = null,
     private val MQTT_SERVER_TOPIC: String,
-    private val MQTT_MESSAGE_QOS: Int = 0
-) : BaseDataSink<String>(sequenceName, "${sinkName}-${sinkCount}", MetricsRepository) {
+    private val MQTT_MESSAGE_QOS: Int = 0,
+    override var map: String? = null
+) : TopicBasedSink<String>(sequenceName, "${sinkName}-${sinkCount}", MetricsRepository) {
     private var client: IMqttClient? = this.getclient()
 
     override fun write(data: DataEntity<String>): DataEntity<String> {
@@ -35,7 +36,9 @@ class MqttSink(
             )
         mqttMessage.qos = MQTT_MESSAGE_QOS
         try {
-            client?.publish(MQTT_SERVER_TOPIC, mqttMessage)
+            val topic = this.mapTopic(MQTT_SERVER_TOPIC, map)
+            System.out.println("Publishing to topic: $topic")
+            client?.publish(topic, mqttMessage)
         } catch (e: MqttException) {
             this.failsMetric?.incValue()
             throw  e
@@ -64,7 +67,6 @@ class MqttSink(
         try {
             iMqttClient.connect(options)
         } catch (e: MqttException) {
-            System.out.println("Mqtt could not connect do to: ")
             e.stackTrace
             throw Error("Failed to start sink")
         }
@@ -86,6 +88,8 @@ class MqttSink(
             this.client?.close()
         }
     }
+
+
 
     override fun getDescription(): String? {
         return "\n      class: ${this.javaClass.name} \n      publisherId: ${this.MQTT_PUBLISHER_ID} \n      host: ${this.MQTT_SERVER_ADDRES} \n      topic: ${this.MQTT_SERVER_TOPIC}"
